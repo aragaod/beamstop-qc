@@ -1,0 +1,16 @@
+#Python cache files
+pycache/
+*.pyc
+
+#Data files - these should be downloaded from Zenodo, not stored in Git
+data/
+
+
+#Local configuration and environment files
+.env
+.venv
+venv/
+
+#DE files
+.vscode/
+.idea/
