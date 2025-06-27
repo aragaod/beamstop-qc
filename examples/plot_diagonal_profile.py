@@ -18,7 +18,7 @@
 
 """
 Example script to demonstrate using the MontageGenerator library to create
-a single plot of the horizontal scattering profile.
+a single plot of the diagonal scattering profile.
 """
 
 import matplotlib.pyplot as plt
@@ -29,14 +29,14 @@ from libs import MontageGenerator
 # --- Configuration ---
 MASTER_FILE = Path('data/low_res_100_100_1_master.h5')
 OUTPUT_DIR = Path('output_examples')
-OUTPUT_FILE = OUTPUT_DIR / 'horizontal_profile_example.png'
+OUTPUT_FILE = OUTPUT_DIR / 'diagonal_profile_example.png'
 
 def main():
     """
     Main function to run the example.
     """
     logging.basicConfig(level=logging.INFO, format='[%(levelname)s] %(message)s')
-    logging.info("--- Running Horizontal Profile Example ---")
+    logging.info("--- Running Diagonal Profile Example ---")
     
     try:
         analyser = MontageGenerator(MASTER_FILE)
@@ -46,7 +46,8 @@ def main():
         return
 
     fig, ax = plt.subplots(figsize=(12, 7))
-    analyser.plot_1d_profile(ax, slice_type='horizontal', direction='right')
+    # Correctly call the plot_1d_profile method for a diagonal slice
+    analyser.plot_1d_profile(ax, slice_type='diagonal')
     
     OUTPUT_DIR.mkdir(exist_ok=True)
     logging.info(f"Saving plot to {OUTPUT_FILE}...")
