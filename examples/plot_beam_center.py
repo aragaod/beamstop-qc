@@ -1,5 +1,3 @@
-#!/usr/bin/env python
-
 #!/usr/bin/env python3
 
 # Copyright 2025 David Aragao, Diamond Light Source
@@ -23,43 +21,46 @@ a single 2D plot of the beam center region.
 """
 
 import matplotlib.pyplot as plt
-import sys
+import logging
+from pathlib import Path
 from libs import MontageGenerator
 
 # --- Configuration ---
-# Use a relative path to the example data file.
-# This assumes the script is run from the project's root directory.
-MASTER_FILE = 'data/low_res_100_100_1_master.h5'
-OUTPUT_FILE = 'output_examples/example_beam_center.png'
+MASTER_FILE = Path('data/low_res_100_100_1_master.h5')
+OUTPUT_DIR = Path('output_examples')
+OUTPUT_FILE = OUTPUT_DIR / 'beam_center_example.png'
 
 def main():
     """
     Main function to run the example.
     """
-    print("--- Running Beam Center Plot Example ---")
+    logging.basicConfig(level=logging.INFO, format='[%(levelname)s] %(message)s')
+    logging.info("--- Running Beam Center Plot Example ---")
     
     try:
         analyser = MontageGenerator(MASTER_FILE)
     except FileNotFoundError:
-        print(f"Error: Data file not found at '{MASTER_FILE}'.")
-        print("Please download the example dataset from Zenodo and place it in the 'data' directory.")
+        logging.error(f"Data file not found at '{MASTER_FILE}'.")
+        logging.error("Please download the example dataset and place it in the 'data' directory.")
         return
 
     fig, ax = plt.subplots(figsize=(10, 10))
     
+    # Showcase the available options for the 2D plot
     plot_options = {
-        'box_width': 100, 'box_height': 100,
-        'threshold': 10, 'cmap': 'inferno'
+        'box_width': 80, 'box_height': 80,
+        'threshold': 10, 'cmap': 'inferno',
+        'annotation_threshold': 80, 'bin_size': 4
     }
     
     im = analyser.plot_2d_center(ax, plot_options)
     fig.colorbar(im, ax=ax, fraction=0.046, pad=0.04, label="Intensity")
-
-    print(f"Saving plot to {OUTPUT_FILE}...")
+    
+    OUTPUT_DIR.mkdir(exist_ok=True)
+    logging.info(f"Saving plot to {OUTPUT_FILE}...")
     plt.savefig(OUTPUT_FILE, dpi=150, bbox_inches='tight')
     plt.show()
-    print("--- Example Finished ---")
+    logging.info("--- Example Finished ---")
 
 if __name__ == '__main__':
     main()
-

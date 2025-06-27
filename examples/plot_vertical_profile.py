@@ -21,34 +21,37 @@ a single plot of the vertical scattering profile.
 """
 
 import matplotlib.pyplot as plt
-
+import logging
+from pathlib import Path
 from libs import MontageGenerator
 
 # --- Configuration ---
-MASTER_FILE = 'data/low_res_100_100_1_master.h5'
-OUTPUT_FILE = 'output_examples/example_vertical_profile.png'
+MASTER_FILE = Path('data/low_res_100_100_1_master.h5')
+OUTPUT_DIR = Path('output_examples')
+OUTPUT_FILE = OUTPUT_DIR / 'vertical_profile_example.png'
 
 def main():
     """
     Main function to run the example.
     """
-    print("--- Running Vertical Profile Example ---")
+    logging.basicConfig(level=logging.INFO, format='[%(levelname)s] %(message)s')
+    logging.info("--- Running Vertical Profile Example ---")
     
     try:
         analyser = MontageGenerator(MASTER_FILE)
     except FileNotFoundError:
-        print(f"Error: Data file not found at '{MASTER_FILE}'.")
-        print("Please download the example dataset from Zenodo and place it in the 'data' directory.")
+        logging.error(f"Data file not found at '{MASTER_FILE}'.")
+        logging.error("Please download the example dataset and place it in the 'data' directory.")
         return
 
     fig, ax = plt.subplots(figsize=(12, 7))
-    analyser.plot_1d_profile(ax, slice_type='vertical', direction='up')
+    analyser.plot_1d_profile(ax, slice_type='vertical', direction='down')
     
-    print(f"Saving plot to {OUTPUT_FILE}...")
+    OUTPUT_DIR.mkdir(exist_ok=True)
+    logging.info(f"Saving plot to {OUTPUT_FILE}...")
     plt.savefig(OUTPUT_FILE, dpi=150, bbox_inches='tight')
     plt.show()
-    print("--- Example Finished ---")
+    logging.info("--- Example Finished ---")
 
 if __name__ == '__main__':
     main()
-
