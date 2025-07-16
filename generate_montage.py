@@ -32,7 +32,7 @@ from libs.analyser import MontageGenerator
 @click.option('--threshold', default=8, type=int, help='Low intensity threshold for the 2D beam center plot.', show_default=True)
 @click.option('--annotation-threshold', default=75, type=int, help='Display intensity values for box of nxn pixel bins above this average.', show_default=True)
 @click.option('--bin-size', default=2, type=int, help='The bin size (n x n pixels) for intensity annotations.', show_default=True)
-@click.option('--box-width', default=60, type=int, help='Width of the 2D plot window in pixels.', show_default=True)
+@click.option('--box-width', default=90, type=int, help='Width of the 2D plot window in pixels.', show_default=True)
 @click.option('--box-height', default=70, type=int, help='Height of the 2D plot window in pixels.', show_default=True)
 # --- 1D Plot Options ---
 @click.option('--vertical-up', is_flag=True, help='Generate vertical profile going upwards from beam center.')
