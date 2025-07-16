@@ -5,6 +5,11 @@ pycache/
 #Data files - these should be downloaded from Zenodo, not stored in Git
 data/
 
+#Default output image
+diffraction_montage.png
+
+#Some i04 specific examples of bad beamstop alignments
+good_examples.README
 
 #Local configuration and environment files
 .env
