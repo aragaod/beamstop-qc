@@ -263,7 +263,7 @@ class MontageGenerator:
             for i, gap_group in enumerate(contiguous_gaps):
                 label = "Detector Gaps" if i == 0 else None
                 ax.axvspan(xmin=gap_group[0], xmax=gap_group[-1], color='gray', alpha=0.3, zorder=0, label=label)
-
+        
             ax.legend(loc='center right')
 
     def plot_2d_center(self, ax, cmd_options):
@@ -292,28 +292,45 @@ class MontageGenerator:
 
         box_half_width, box_half_height = box_width // 2, box_height // 2
         beam_x_int, beam_y_int = self.beam_info['beam_x_int'], self.beam_info['beam_y_int']
-        y_start, y_end = beam_y_int - box_half_height, beam_y_int + box_half_height
-        x_start, x_end = beam_x_int - box_half_width, beam_x_int + box_half_width
-        roi_data = self.image_array[y_start:y_end, x_start:x_end]
 
+        # Add boundary checks to prevent slicing outside the image array
+        img_h, img_w = self.image_array.shape
+        y_start, y_end = max(0, beam_y_int - box_half_height), min(img_h, beam_y_int + box_half_height)
+        x_start, x_end = max(0, beam_x_int - box_half_width), min(img_w, beam_x_int + box_half_width)
+
+        roi_data = self.image_array[y_start:y_end, x_start:x_end]
         roi_data_filtered = roi_data.astype(float)
         roi_data_filtered[(roi_data_filtered >= GAP_SENTINEL) | (roi_data_filtered <= low_intensity_threshold)] = np.nan
 
-        cmap = plt.get_cmap(cmap_name)
-        cmap.set_bad(color='white')
-        im = ax.imshow(roi_data_filtered, cmap=cmap, norm=LogNorm(vmin=low_intensity_threshold + 1))
+        vmin = low_intensity_threshold + 1
+        # The RuntimeWarning for All-NaN slice is expected here and can be ignored.
+        with np.errstate(all='ignore'):
+            vmax = np.nanmax(roi_data_filtered)
 
-        # Add binned intensity annotations
-        for r in range(0, roi_data.shape[0], bin_size):
-            for c in range(0, roi_data.shape[1], bin_size):
-                block = roi_data[r:r+bin_size, c:c+bin_size]
-                valid_pixels = block[block < GAP_SENTINEL]
-                if valid_pixels.size > 0:
-                    mean_intensity = np.mean(valid_pixels)
-                    if mean_intensity > annotation_threshold:
-                        bbox_props = dict(boxstyle='round,pad=0.2', facecolor='black', alpha=0.5, edgecolor='none')
-                        ax.text(c + bin_size/2, r + bin_size/2, f"{mean_intensity:.0f}",
-                                ha="center", va="center", color="white", fontsize=6, bbox=bbox_props)
+        im = None # Default the image object to None
+
+        if not np.isnan(vmax) and vmax > vmin:
+            cmap = plt.get_cmap(cmap_name)
+            cmap.set_bad(color='white')
+            im = ax.imshow(roi_data_filtered, cmap=cmap, norm=LogNorm(vmin=vmin, vmax=vmax))
+
+            # Add binned intensity annotations
+            for r in range(0, roi_data.shape[0], bin_size):
+                for c in range(0, roi_data.shape[1], bin_size):
+                    block = roi_data[r:r+bin_size, c:c+bin_size]
+                    valid_pixels = block[block < GAP_SENTINEL]
+                    if valid_pixels.size > 0:
+                        mean_intensity = np.mean(valid_pixels)
+                        if mean_intensity > annotation_threshold:
+                            bbox_props = dict(boxstyle='round,pad=0.2', facecolor='black', alpha=0.5, edgecolor='none')
+                            ax.text(c + bin_size/2, r + bin_size/2, f"{mean_intensity:.0f}",
+                                    ha="center", va="center", color="white", fontsize=6, bbox=bbox_props)
+        else:
+            # If no valid data, log a warning and add an unobtrusive message to the plot
+            logging.warning(f"No data points found above the threshold ({low_intensity_threshold}) in the 2D plot region.")
+            ax.text(0.05, 0.05, "No data above threshold", 
+                    ha='left', va='bottom', transform=ax.transAxes, 
+                    fontsize=7, color='gray')
 
         center_x_in_roi, center_y_in_roi = beam_x_px - x_start, beam_y_px - y_start
         ax.plot(center_x_in_roi, center_y_in_roi, 'r+', markersize=12, label='Beam Center')
@@ -353,7 +370,8 @@ class MontageGenerator:
             self.plot_1d_profile(axes[1, 0], 'horizontal', direction=horizontal_direction)
             self.plot_1d_profile(axes[1, 1], 'vertical', direction=vertical_direction)
             
-            fig.colorbar(im2d, ax=axes[0, 0], fraction=0.046, pad=0.04, label="Intensity")
+            if im2d:
+                fig.colorbar(im2d, ax=axes[0, 0], fraction=0.046, pad=0.04, label="Intensity")
 
         else: # Single or two-panel montages
             if montage_type in ['vertical', 'horizontal', 'diagonal']:
@@ -361,7 +379,8 @@ class MontageGenerator:
                 fig.suptitle(f"Diffraction Image Analysis: 2D Center and {montage_type.capitalize()} Profile", fontsize=16)
                 
                 im2d = self.plot_2d_center(axes[0], cli_options)
-                fig.colorbar(im2d, ax=axes[0], fraction=0.046, pad=0.04, label="Intensity")
+                if im2d:
+                    fig.colorbar(im2d, ax=axes[0], fraction=0.046, pad=0.04, label="Intensity")
                 
                 if montage_type == 'vertical':
                     direction = 'up' if cli_options['vertical_up'] else 'down'
@@ -375,7 +394,8 @@ class MontageGenerator:
                 fig, ax = plt.subplots(figsize=(10,10))
                 if montage_type == '2d':
                     im = self.plot_2d_center(ax, cli_options)
-                    fig.colorbar(im, ax=ax, fraction=0.046, pad=0.04, label="Intensity")
+                    if im:
+                        fig.colorbar(im, ax=ax, fraction=0.046, pad=0.04, label="Intensity")
                 elif montage_type == '1d_vertical':
                     direction = 'up' if cli_options['vertical_up'] else 'down'
                     self.plot_1d_profile(ax, 'vertical', direction=direction)
@@ -383,7 +403,7 @@ class MontageGenerator:
                     direction = 'left' if cli_options['horizontal_left'] else 'right'
                     self.plot_1d_profile(ax, 'horizontal', direction=direction)
                 elif montage_type == '1d_diagonal':
-                     self.plot_1d_profile(ax, 'diagonal')
+                        self.plot_1d_profile(ax, 'diagonal')
         
         fig.text(0.5, 0.95, self.master_filepath, ha='center', va='top', fontsize=12, color='gray')
         plt.tight_layout(rect=[0, 0.03, 1, 0.95])
